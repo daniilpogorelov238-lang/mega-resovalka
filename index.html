@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColdSky | Подключение</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,'Segoe UI',sans-serif}
+        body{min-height:100vh;background:linear-gradient(145deg,#0b0e16,#11161f);display:flex;align-items:center;justify-content:center;padding:1rem}
+        .card{max-width:480px;width:100%;background:rgba(18,24,34,.9);backdrop-filter:blur(8px);border-radius:2rem;border:1px solid rgba(46,213,115,.4);padding:1.5rem}
+        h1{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#fff,#b0f0cf);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center}
+        .sub{text-align:center;font-size:.7rem;color:#8ea3bb;margin:5px 0 1rem}
+        .version-switch{background:#0f131c;border-radius:2rem;display:flex;margin-bottom:1.2rem;padding:3px;gap:4px}
+        .version-option{flex:1;text-align:center;padding:8px 0;border-radius:2rem;font-weight:600;font-size:.8rem;cursor:pointer;color:#9aadc4}
+        .version-option.active{background:#2ed573;color:#0a0c12}
+        .input-group{margin-bottom:.8rem}
+        label{font-size:.75rem;color:#ccdeef;margin-bottom:4px;display:block}
+        input{width:100%;background:#0f131c;border:1px solid #2c3542;border-radius:1rem;padding:10px 12px;color:#fff;font-size:.9rem}
+        input:focus{outline:none;border-color:#2ed573}
+        .row{display:flex;gap:10px}
+        .row .input-group{flex:1}
+        .preview{background:#0a0e16;border-radius:1rem;padding:8px 12px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;border-left:3px solid #2ed573}
+        .preview span{font-family:monospace;font-size:.85rem;color:#cae9db;word-break:break-all}
+        .preview button{background:0;border:0;color:#2ed573;cursor:pointer}
+        .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border-radius:2rem;font-weight:700;border:none;cursor:pointer;width:100%;margin-top:8px}
+        .btn-primary{background:#2ed573;color:#0a0c12}
+        .btn-secondary{background:rgba(46,213,115,.12);border:1px solid #2ed57380;color:#d0f0e0}
+        .info{font-size:.65rem;text-align:center;color:#6a7e9b;margin-top:1rem;padding-top:.8rem;border-top:1px solid #1f2a36}
+        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e2a2f;padding:6px 18px;border-radius:40px;color:#b9ffd9;font-size:.75rem;border-left:3px solid #2ed573;opacity:0;transition:.2s;pointer-events:none;z-index:1000}
+        @media(max-width:500px){.card{padding:1.2rem}}
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+<div class="card">
+    <h1><i class="fas fa-cloud-moon" style="color:#2ed573; font-size:1.6rem;"></i> ColdSky</h1>
+    <div class="sub">Java • Bedrock | Введи свой сервер</div>
+
+    <div class="version-switch">
+        <div class="version-option active" data-version="java"><i class="fab fa-java"></i> Java</div>
+        <div class="version-option" data-version="bedrock"><i class="fas fa-cube"></i> Bedrock</div>
+    </div>
+
+    <div class="input-group">
+        <label><i class="fas fa-network-wired"></i> IP-адрес</label>
+        <input type="text" id="ip" placeholder="play.coldsky.ru / 192.168.1.5">
+    </div>
+    <div class="row">
+        <div class="input-group">
+            <label><i class="fas fa-plug"></i> Порт</label>
+            <input type="number" id="port" value="25565">
+        </div>
+        <div class="input-group">
+            <button id="exampleBtn" style="background:#1e2936; border:1px solid #2ed57366; border-radius:2rem; padding:8px; width:100%; margin-top:22px; color:#b0e0cc; cursor:pointer; font-size:.75rem;"><i class="fas fa-undo-alt"></i> Пример</button>
+        </div>
+    </div>
+
+    <div class="preview">
+        <span id="preview">— : —</span>
+        <button id="copyBtn"><i class="far fa-copy"></i></button>
+    </div>
+
+    <button id="connectBtn" class="btn btn-primary"><i class="fab fa-minecraft"></i> Подключиться</button>
+    <button id="copyFullBtn" class="btn btn-secondary"><i class="fas fa-clipboard"></i> Копировать адрес</button>
+
+    <div class="info"><i class="fas fa-globe"></i> Доступно всем • Java: minecraft:// | Bedrock: minecraft:?connect=</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+    const ipInput = document.getElementById('ip');
+    const portInput = document.getElementById('port');
+    const previewSpan = document.getElementById('preview');
+    const copyBtn = document.getElementById('copyBtn');
+    const copyFullBtn = document.getElementById('copyFullBtn');
+    const connectBtn = document.getElementById('connectBtn');
+    const exampleBtn = document.getElementById('exampleBtn');
+    
+    let currentVersion = 'java';
+
+    function getAddr() {
+        let ip = ipInput.value.trim();
+        let port = parseInt(portInput.value, 10);
+        if (isNaN(port) || port < 1 || port > 65535) port = currentVersion === 'java' ? 25565 : 19132;
+        if (!ip) return null;
+        return { ip, port, full: `${ip}:${port}` };
+    }
+
+    function updatePreview() {
+        let a = getAddr();
+        previewSpan.textContent = a ? a.full : '❌ Укажите IP';
+    }
+
+    function showToast(msg, err = false) {
+        let t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.opacity = '1';
+        t.style.background = err ? '#2c1a1f' : '#1e2a2f';
+        t.style.borderLeftColor = err ? '#f87171' : '#2ed573';
+        setTimeout(() => t.style.opacity = '0', 2000);
+    }
+
+    function copyAddress() {
+        let a = getAddr();
+        if (!a) { showToast('Введите IP', true); return; }
+        navigator.clipboard.writeText(a.full).then(() => showToast(`Скопировано: ${a.full}`)).catch(() => showToast('Ошибка', true));
+    }
+
+    function connect() {
+        let a = getAddr();
+        if (!a) { showToast('Введите IP сервера', true); ipInput.focus(); return; }
+        portInput.value = a.port;
+        let url = '';
+        if (currentVersion === 'java') {
+            url = `minecraft://?addServer=${encodeURIComponent('ColdSky')}&server=${encodeURIComponent(a.full)}`;
+        } else {
+            url = `minecraft:?connect=${encodeURIComponent(a.full)}`;
+        }
+        window.location.href = url;
+        showToast(`${currentVersion === 'java' ? 'Java' : 'Bedrock'} → ${a.full}`);
+        navigator.clipboard.writeText(a.full).catch(()=>{});
+    }
+
+    function setExample() {
+        if (currentVersion === 'java') { ipInput.value = 'play.coldsky.ru'; portInput.value = '25565'; }
+        else { ipInput.value = 'bedrock.coldsky.ru'; portInput.value = '19132'; }
+        updatePreview();
+        showToast(`Пример для ${currentVersion === 'java' ? 'Java' : 'Bedrock'}`);
+    }
+
+    function setVersion(v) {
+        currentVersion = v;
+        document.querySelectorAll('.version-option').forEach(opt => {
+            opt.classList.toggle('active', opt.dataset.version === v);
+        });
+        let curPort = parseInt(portInput.value, 10);
+        if (v === 'java' && (isNaN(curPort) || curPort === 19132)) portInput.value = 25565;
+        if (v === 'bedrock' && (isNaN(curPort) || curPort === 25565)) portInput.value = 19132;
+        updatePreview();
+    }
+
+    ipInput.addEventListener('input', updatePreview);
+    portInput.addEventListener('input', updatePreview);
+    copyBtn.addEventListener('click', copyAddress);
+    copyFullBtn.addEventListener('click', copyAddress);
+    connectBtn.addEventListener('click', connect);
+    exampleBtn.addEventListener('click', setExample);
+    
+    document.querySelectorAll('.version-option').forEach(opt => {
+        opt.addEventListener('click', () => setVersion(opt.dataset.version));
+    });
+    
+    portInput.addEventListener('blur', () => {
+        let v = parseInt(portInput.value, 10);
+        if (isNaN(v) || v < 1) portInput.value = currentVersion === 'java' ? 25565 : 19132;
+        else if (v > 65535) portInput.value = 65535;
+        updatePreview();
+    });
+    
+    [ipInput, portInput].forEach(inp => inp.addEventListener('keypress', e => { if(e.key === 'Enter') connect(); }));
+    
+    setVersion('java');
+    updatePreview();
+</script>
+</body>
+</html>
