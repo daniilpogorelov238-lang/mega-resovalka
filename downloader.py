@@ -1,8 +1,7 @@
 import requests
 
 # Замените эту ссылку на вашу raw-ссылку на APK из GitHub
-APK_RAW_URL = "https://raw.githubusercontent.com/ВАШ_ЛОГИН/ВАШ_РЕПОЗИТОРИЙ/ВЕТКА/path/to/app-debug.apk"
-OUTPUT_FILENAME = "app-debug.apk"
+APK_RAW_URL = "https://github.com/daniilpogorelov238-lang/ColdSkySite"
 
 def download_file(url, filename):
     try:
