@@ -15,7 +15,7 @@ def download_file(url, filename):
         print(f"Ошибка при скачивании: {e}")
 
 if __name__ == "__main__":
-    if APK_RAW_URL == "https://raw.githubusercontent.com/ВАШ_ЛОГИН/ВАШ_РЕПОЗИТОРИЙ/ВЕТКА/path/to/app-debug.apk":
+    if APK_RAW_URL == "https://github.com/daniilpogorelov238-lang/ColdSkySite":
         print("Пожалуйста, замените APK_RAW_URL на вашу реальную raw-ссылку из GitHub.")
     else:
         download_file(APK_RAW_URL, OUTPUT_FILENAME)
