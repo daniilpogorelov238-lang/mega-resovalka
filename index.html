@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🎨 МегаРисовалка | Кисть + Ластик</title>
+    <title>🎨 МегаРисовалка | Изменяемый размер холста</title>
     <style>
         * {
             margin: 0;
@@ -27,7 +27,7 @@
         body.green { background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%); }
 
         .app {
-            max-width: 550px;
+            max-width: 700px;
             margin: 0 auto;
         }
 
@@ -145,17 +145,17 @@
             gap: 10px;
             border-bottom: 1px solid rgba(0,0,0,0.05);
         }
-        .size-control {
+        .size-control, .canvas-size-control {
             display: flex;
             align-items: center;
             gap: 12px;
             background: rgba(0,0,0,0.04);
             padding: 5px 12px;
             border-radius: 60px;
-            flex: 2;
-            min-width: 150px;
+            flex: 1;
+            min-width: 130px;
         }
-        .size-control label {
+        .size-control label, .canvas-size-control label {
             font-size: 0.7rem;
             font-weight: bold;
         }
@@ -197,15 +197,13 @@
             justify-content: center;
         }
         canvas {
-            width: 100%;
-            height: auto;
-            max-width: 450px;
             background: white;
             border-radius: 24px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             cursor: crosshair;
             touch-action: none;
             display: block;
+            transition: width 0.1s, height 0.1s;
         }
 
         /* НИЗ */
@@ -228,14 +226,14 @@
         body.dark .info-text { color: #94a3b8; }
 
         /* АДАПТИВ */
-        @media (max-width: 480px) {
+        @media (max-width: 550px) {
             body { padding: 8px; }
             .main-card { border-radius: 24px; }
             button { padding: 6px 10px; font-size: 0.7rem; min-width: 44px; }
             .color-btn { width: 38px; height: 38px; }
             .tool-group { padding: 4px 8px; }
             .settings-panel { flex-direction: column; align-items: stretch; }
-            .size-control { width: 100%; }
+            .size-control, .canvas-size-control { width: 100%; }
         }
     </style>
 </head>
@@ -272,12 +270,18 @@
             </div>
         </div>
 
-        <!-- НАСТРОЙКИ: РАЗМЕР КИСТИ + ДЕЙСТВИЯ -->
+        <!-- НАСТРОЙКИ: РАЗМЕР КИСТИ + РАЗМЕР ХОЛСТА + ДЕЙСТВИЯ -->
         <div class="settings-panel">
             <div class="size-control">
-                <label>✏️ Размер</label>
+                <label>✏️ Кисть</label>
                 <input type="range" id="brushSize" min="2" max="35" value="8">
                 <span class="size-value" id="sizeValue">8</span>
+            </div>
+            <div class="canvas-size-control">
+                <label>📐 Холст</label>
+                <input type="range" id="canvasSize" min="150" max="500" value="400">
+                <span class="size-value" id="canvasSizeValue">400</span>
+                <span>px</span>
             </div>
             <div class="action-buttons">
                 <button id="undoBtn" class="tool-btn">↩️ Отмена</button>
@@ -288,7 +292,7 @@
 
         <!-- ХОЛСТ -->
         <div class="canvas-area">
-            <canvas id="drawCanvas" width="450" height="450"></canvas>
+            <canvas id="drawCanvas" width="400" height="400"></canvas>
         </div>
 
         <!-- НИЖНЯЯ ПАНЕЛЬ -->
@@ -315,32 +319,52 @@
     let historyIndex = -1;
     const MAX_HISTORY = 30;
     
-    // ========== 2. РАЗМЕР ХОЛСТА ==========
-    function resizeCanvas() {
-        const container = canvas.parentElement;
-        let size = container.clientWidth - 4;
-        if (size > 450) size = 450;
-        if (size < 250) size = 250;
-        
+    // ========== 2. ИЗМЕНЕНИЕ РАЗМЕРА ХОЛСТА ==========
+    let currentCanvasSize = 400;
+    
+    function resizeCanvas(size) {
+        // Сохраняем текущий рисунок
         const oldData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Меняем размер холста
         canvas.width = size;
         canvas.height = size;
         canvas.style.width = `${size}px`;
         canvas.style.height = `${size}px`;
         
+        // Восстанавливаем рисунок с масштабированием
         ctx = canvas.getContext('2d');
-        if (oldData && oldData.width > 0) {
-            ctx.putImageData(oldData, 0, 0);
+        if (oldData && oldData.width > 0 && oldData.height > 0) {
+            // Создаём временный холст с сохранённым рисунком
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = oldData.width;
+            tempCanvas.height = oldData.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(oldData, 0, 0);
+            
+            // Рисуем сохранённый рисунок на новом холсте с масштабированием
+            ctx.drawImage(tempCanvas, 0, 0, size, size);
         } else {
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
+        
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        
+        // Сохраняем в историю
         saveToHistory();
     }
     
-    window.addEventListener('resize', () => setTimeout(resizeCanvas, 50));
+    // Обработчик изменения размера холста
+    const canvasSizeSlider = document.getElementById('canvasSize');
+    const canvasSizeValue = document.getElementById('canvasSizeValue');
+    
+    canvasSizeSlider.addEventListener('input', () => {
+        currentCanvasSize = parseInt(canvasSizeSlider.value);
+        canvasSizeValue.innerText = currentCanvasSize;
+        resizeCanvas(currentCanvasSize);
+    });
     
     // ========== 3. ИСТОРИЯ ==========
     function saveToHistory() {
@@ -382,7 +406,7 @@
         link.click();
     }
     
-    // ========== 4. КООРДИНАТЫ ДЛЯ МЫШИ И ТАЧА ==========
+    // ========== 4. КООРДИНАТЫ ==========
     function getCoords(e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -447,7 +471,7 @@
         }
     }
     
-    // ========== 5. СОБЫТИЯ МЫШИ И ТАЧА ==========
+    // ========== 5. СОБЫТИЯ ==========
     canvas.addEventListener('mousedown', startDraw);
     canvas.addEventListener('mousemove', drawMove);
     canvas.addEventListener('mouseup', stopDraw);
@@ -458,13 +482,12 @@
     canvas.addEventListener('touchend', stopDraw);
     
     // ========== 6. ИНТЕРФЕЙС ==========
-    // Выбор цвета
+    // Цвета
     document.querySelectorAll('.color-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentColor = btn.dataset.color;
-            // Если был ластик, переключаем на кисть
             if (currentTool === 'eraser') {
                 currentTool = 'brush';
                 document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
@@ -486,7 +509,7 @@
         document.getElementById('eraserBtn').classList.add('active');
     });
     
-    // Ползунок размера кисти
+    // Размер кисти
     const sizeSlider = document.getElementById('brushSize');
     const sizeValue = document.getElementById('sizeValue');
     sizeSlider.addEventListener('input', () => {
@@ -499,7 +522,7 @@
     document.getElementById('clearBtn').addEventListener('click', clearCanvas);
     document.getElementById('saveBtn').addEventListener('click', saveCanvas);
     
-    // ========== 7. ТЕМЫ (СОХРАНЕНИЕ) ==========
+    // ========== 7. ТЕМЫ ==========
     function setTheme(theme) {
         document.body.className = theme;
         localStorage.setItem('megadraw_theme', theme);
@@ -525,15 +548,13 @@
     });
     
     // ========== 9. ЗАПУСК ==========
-    resizeCanvas();
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Устанавливаем начальный размер
+    resizeCanvas(400);
     saveToHistory();
     
-    console.log('🎨 МегаРисовалка запущена!');
-    console.log('✅ Кисть | Ластик | Отмена | Сохранение | Очистка');
-    console.log('✅ 4 темы | Ползунок размера | Цвета');
-    console.log('✅ Горячие клавиши: B (кисть), E (ластик), Ctrl+Z (отмена)');
+    console.log('🎨 МегаРисовалка с изменяемым размером холста!');
+    console.log('✅ Меняй размер холста ползунком "Холст"');
+    console.log('✅ Рисунок масштабируется при изменении размера');
 </script>
 </body>
 </html>
